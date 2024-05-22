@@ -8,7 +8,7 @@
 ///
 /// Versionable structs are intrinsically future-compatible
 /// with the guarantee of never breaking logic
-/// that depends on legacy layouts.
+/// that depends on legacy layouts or serializations.
 pub trait Versionable {
 	const CURRENT_VERSION: u16;
 }
