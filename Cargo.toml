@@ -7,4 +7,5 @@ edition = "2021"
 crate-type = ["staticlib", "cdylib", "lib"]
 
 [dependencies]
-
+serde = { version = "1.0.202", features = ["derive"] }
+serde_bytes = "0.11.14"

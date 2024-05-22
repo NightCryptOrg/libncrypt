@@ -1,9 +1,11 @@
+use crate::string::{String, BString};
+
 #[repr(C)]
 pub struct EncryptionHeader {
 	pub data_header: DataHeader,
 	pub key_header: KeyHeader,
 	/// Data-encryption key, encrypted using user-KEK
-	pub key: String
+	key: Vec<u8>
 }
 
 /// Metadata for encrypted data fields
