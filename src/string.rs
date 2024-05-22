@@ -110,7 +110,7 @@ impl NString<c_char> for NCString {
 /// NBString - A byte string with FFI interop via [NString]
 #[repr(transparent)]
 #[derive(Serialize, Deserialize)]
-struct NBString(Vec<u8>);
+pub struct NBString(Vec<u8>);
 
 impl From<Vec<u8>> for NBString {
 	fn from(value: Vec<u8>) -> Self {
@@ -119,19 +119,50 @@ impl From<Vec<u8>> for NBString {
 }
 
 impl NString<u8> for NBString {
-	extern fn malloc(str: *const u8, len: usize) -> *mut Self {
-		todo!()
+	#[export_name = "NBString_malloc"]
+	extern fn malloc(data: *const u8, len: usize) -> *mut Self {
+		let self_: Self = if !data.is_null() {
+
+			// Copy string from data -> self_
+			let mut bytes: Vec<u8> = Vec::with_capacity(len);
+			for i in 0..len {
+				bytes.push(unsafe { *data.add(i) });
+			}
+
+			Self(bytes)
+		} else {
+			Self(vec![0u8; len])
+		};
+
+		Box::into_raw(Box::new(self_))
 	}
 
+	#[export_name = "NBString_free"]
 	extern fn free(v: *mut Self) {
-		todo!()
+		// Reconstruct and drop
+		let _self = unsafe { Box::from_raw(v) };
 	}
 
+	#[export_name = "NBString_get"]
 	extern fn get(v: *mut Self) -> *mut u8 {
-		todo!()
+		let mut self_ = unsafe { Box::from_raw(v) };
+		let data = self_.0.as_mut_ptr();
+
+		// Re-leak
+		Box::leak(self_);
+
+		data
 	}
 
+	#[export_name = "NBString_get_len"]
 	extern fn get_len(v: *const Self) -> usize {
-		todo!()
+		// See [NCString::get_len] for notes  about the following cast to *mut.
+		// TL;DR we're mutating the Box, not the value, so the cast is sound
+		let self_ = unsafe { Box::from_raw(v as *mut Self) };
+		let len = self_.0.len();
+
+		Box::leak(self_);
+
+		len
 	}
 }

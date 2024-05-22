@@ -11,10 +11,17 @@
 
 typedef struct String String;
 
+typedef struct Vec_u8 Vec_u8;
+
 /**
- * NCString - An owned NUL-terminated text string with FFI interop.
+ * NCString - An NUL-terminated text string with FFI interop via [NString].
  */
 typedef struct String NCString;
+
+/**
+ * NBString - A byte string with FFI interop via [NString]
+ */
+typedef struct Vec_u8 NBString;
 
 /**
  * Metadata for encrypted data fields
@@ -49,20 +56,28 @@ typedef struct EncryptionHeader {
   /**
    * Data-encryption key, encrypted using user-KEK
    */
-  NCString *key;
+  NBString *key;
 } EncryptionHeader;
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
+NCString *NCString_malloc(const char *str, size_t len);
+
 void NCString_free(NCString *v);
 
 char *NCString_get(NCString *v);
 
-NCString *NCString_malloc(const char *str, size_t len);
-
 size_t NCstring_get_len(const NCString *v);
+
+NBString *NBString_malloc(const uint8_t *data, size_t len);
+
+void NBString_free(NBString *v);
+
+uint8_t *NBString_get(NBString *v);
+
+size_t NBString_get_len(const NBString *v);
 
 #ifdef __cplusplus
 } // extern "C"
