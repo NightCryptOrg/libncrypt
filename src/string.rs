@@ -23,7 +23,7 @@ pub trait NString<T> {
 /// or a NULL ptr
 pub trait TerminatedNString<T>: NString<T> {}
 
-/// NCString - An owned NUL-terminated text string with FFI interop.
+/// NCString - An NUL-terminated text string with FFI interop via [NString].
 #[repr(transparent)]
 #[derive(Serialize, Deserialize)]
 pub struct NCString(String);
@@ -104,5 +104,34 @@ impl NString<c_char> for NCString {
 
 		// Return the str len (excluding NUL terminator)
 		len - 1
+	}
+}
+
+/// NBString - A byte string with FFI interop via [NString]
+#[repr(transparent)]
+#[derive(Serialize, Deserialize)]
+struct NBString(Vec<u8>);
+
+impl From<Vec<u8>> for NBString {
+	fn from(value: Vec<u8>) -> Self {
+		Self(value)
+	}
+}
+
+impl NString<u8> for NBString {
+	extern fn malloc(str: *const u8, len: usize) -> *mut Self {
+		todo!()
+	}
+
+	extern fn free(v: *mut Self) {
+		todo!()
+	}
+
+	extern fn get(v: *mut Self) -> *mut u8 {
+		todo!()
+	}
+
+	extern fn get_len(v: *const Self) -> usize {
+		todo!()
 	}
 }
