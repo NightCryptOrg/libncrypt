@@ -94,10 +94,11 @@ impl NBString {
 	/// Deinitialize an NBString (unneccessary to call from Rust - RAII accomplishes deinitialization)
 	#[export_name = "NBString_deinit"]
 	pub extern fn deinit(&mut self) {
-		if let Some(inner) = &mut self.buf {
+		if let Some(buf) = &mut self.buf {
 			self.data = std::ptr::null_mut();
 			self.len = 0;
-			mem::drop(mem::take(inner));
+			mem::drop(mem::take(buf));
+			self.buf = None;
 		}
 	}
 }
