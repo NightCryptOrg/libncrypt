@@ -24,7 +24,7 @@ pub trait NString<T> {
 pub trait TerminatedNString<T>: NString<T> {}
 
 /// NCString - An owned NUL-terminated text string with FFI interop.
-#[repr(C)]
+#[repr(transparent)]
 #[derive(Serialize, Deserialize)]
 pub struct NCString(String);
 

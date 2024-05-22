@@ -14,9 +14,7 @@ typedef struct String String;
 /**
  * NCString - An owned NUL-terminated text string with FFI interop.
  */
-typedef struct NCString {
-  struct String _0;
-} NCString;
+typedef struct String NCString;
 
 /**
  * Metadata for encrypted data fields
@@ -31,7 +29,7 @@ typedef struct DataHeader {
   /**
    * Data encryption algorithm ID
    */
-  struct NCString algorithm;
+  NCString *algorithm;
 } DataHeader;
 
 /**
@@ -42,7 +40,7 @@ typedef struct KeyHeader {
   /**
    * Key encryption algorithm ID
    */
-  struct NCString algorithm;
+  NCString *algorithm;
 } KeyHeader;
 
 typedef struct EncryptionHeader {
@@ -51,20 +49,20 @@ typedef struct EncryptionHeader {
   /**
    * Data-encryption key, encrypted using user-KEK
    */
-  struct NCString key;
+  NCString *key;
 } EncryptionHeader;
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-void NCString_free(struct NCString *v);
+void NCString_free(NCString *v);
 
-char *NCString_get(struct NCString *v);
+char *NCString_get(NCString *v);
 
-struct NCString *NCString_malloc(const char *str, size_t len);
+NCString *NCString_malloc(const char *str, size_t len);
 
-size_t NCstring_get_len(const struct NCString *v);
+size_t NCstring_get_len(const NCString *v);
 
 #ifdef __cplusplus
 } // extern "C"

@@ -5,7 +5,7 @@ pub struct EncryptionHeader {
 	pub data_header: DataHeader,
 	pub key_header: KeyHeader,
 	/// Data-encryption key, encrypted using user-KEK
-	key: NCString
+	key: Box<NCString>
 }
 
 /// Metadata for encrypted data fields
@@ -16,7 +16,7 @@ pub struct DataHeader {
 	/// This field enables opaque nullability
 	pub empty: bool,
 	/// Data encryption algorithm ID
-	pub algorithm: NCString
+	pub algorithm: Box<NCString>
 }
 
 /// Metadata for KEK-encrypted data-encryption keys
@@ -24,5 +24,5 @@ pub struct DataHeader {
 #[repr(C)]
 pub struct KeyHeader {
 	/// Key encryption algorithm ID
-	pub algorithm: NCString
+	pub algorithm: Box<NCString>
 }

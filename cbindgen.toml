@@ -137,7 +137,7 @@ bitflags = false
 parse_deps = false
 # include = []
 exclude = []
-clean = false
+clean = true
 extra_bindings = []
 
 
