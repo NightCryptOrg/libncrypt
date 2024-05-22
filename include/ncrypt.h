@@ -9,6 +9,10 @@
 #include <stdlib.h>
 
 
+#define V0 0
+
+#define CURRENT_VERSION V0
+
 typedef struct String String;
 
 typedef struct Vec_u8 Vec_u8;
@@ -28,6 +32,7 @@ typedef struct Vec_u8 NBString;
  * (delivered encrypted with the same KEK as the data key)
  */
 typedef struct DataHeader {
+  uint16_t version;
   /**
    * Whether the data is empty/null.
    * This field enables opaque nullability
@@ -44,6 +49,7 @@ typedef struct DataHeader {
  * (delivered as plaintext)
  */
 typedef struct KeyHeader {
+  uint16_t version;
   /**
    * Key encryption algorithm ID
    */
@@ -51,6 +57,7 @@ typedef struct KeyHeader {
 } KeyHeader;
 
 typedef struct EncryptionHeader {
+  uint16_t version;
   struct DataHeader data_header;
   struct KeyHeader key_header;
   /**
