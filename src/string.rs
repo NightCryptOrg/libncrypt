@@ -1,104 +1,108 @@
-use std::{ffi::{c_char, c_uchar, c_int, CString}, mem};
-use std::string;
+use std::ffi::c_char;
 use serde::{Serialize, Deserialize};
 
-/// NCString - An owned NUL-terminated text string with associated length.
-///
-/// SAFETY: An NCString used via FFI must be initialized with `NCString_init()` before use,
-/// and deinitialized with `NCString_deinit()` after use
-#[repr(C)]
-#[derive(Serialize, Deserialize)]
-pub struct NCString {
-	#[serde(skip, default = "std::ptr::null_mut")]
-	pub str: *mut c_char,
-	pub len: usize,
-	#[serde(with = "serde_bytes")]
-	buf: Option<Box<[u8]>> // [std::ffi::CString] is used internally for validation
-}
+/// An FFI-opaque + FFI-immutable string type with *optional* NUL-termination (See [TerminatedNString]).
+pub trait NString<T> {
+	/// Allocate the string over FFI. Len should **not** include optional NUL byte. Free using [NString::free]
+	extern fn malloc(str: *const T, len: usize) -> *mut Self;
+	/// Free the string allocated using [NString::malloc]
+	extern fn free(v: *mut Self);
 
-impl NCString {
-	/// Initialize an NCString (copies the contents of str)
-	/// (uneccessary to call from Rust - NCString implements [From]<[String]>)
+	/// Get the string's start address. If [Self] impl [TerminatedNString],
+	/// then this pointer is a C string.
 	///
-	/// Returns 0 on success or 1 if *str contains inner NUL characters
-	#[export_name = "NCString_init"]
-	pub extern fn init(&mut self, str: *mut c_char, len: usize) -> c_int {
-		let mut raw: Vec<u8> = Vec::with_capacity(len);
-		for i in 0..len {
-			raw.push(unsafe { *str.add(i) as u8 });
-		}
+	/// NULL is returned if an error occurs
+	extern fn get(v: *mut Self) -> *mut T;
 
-		match CString::new(raw) { // Validate that string doesn't contain internal NUL chars
-			Ok(cstr) => {
-				let mut buf = cstr.into_bytes_with_nul().into_boxed_slice();
-				self.str = buf.as_mut_ptr() as *mut c_char;
-				self.buf = Some(buf);
-				self.len = len;
-				0
-			}
-			Err(_) => 1
-		}
-	}
 
-	/// Deinitialize an NCString (unecessary to call from Rust - RAII accomplishes deinitialization)
-	#[export_name = "NCString_deinit"]
-	pub extern fn deinit(&mut self) {
-		if let Some(buf) = &mut self.buf {
-			self.str = std::ptr::null_mut();
-			self.len = 0;
-			mem::drop(mem::take(buf));
-		}
-	}
+	/// Get the string's length, **not** including the NUL terminator if [Self] impl [TerminatedNString].
+	extern fn get_len(v: *const Self) -> usize;
 }
 
-impl From<string::String> for NCString {
-	fn from(value: string::String) -> Self {
-		let len = value.len();
-		let mut buf = value.into_bytes().into_boxed_slice();
-			Self {
-				str: buf.as_mut_ptr() as *mut c_char,
-				buf: Some(buf),
-				len
-		}
-	}
-}
+/// An NString that guarantees that get() will return either a valid C string
+/// or a NULL ptr
+pub trait TerminatedNString<T>: NString<T> {}
 
-/// NBString - An owned binary string with associated length
-#[repr(C)]
+/// NCString - An owned NUL-terminated text string with FFI interop.
+#[repr(transparent)]
 #[derive(Serialize, Deserialize)]
-pub struct NBString {
-	#[serde(skip, default = "std::ptr::null_mut")]
-	pub data: *mut u8,
-	pub len: usize,
-	#[serde(with = "serde_bytes")]
-	buf: Option<Box<[u8]>>
+pub struct NCString(String);
+
+impl From<String> for NCString {
+	fn from(value: String) -> Self {
+		Self(value)
+	}
 }
 
+impl TerminatedNString<c_char> for NCString {}
+impl NString<c_char> for NCString {
+	#[export_name = "NCString_malloc"]
+	extern fn malloc(str: *const c_char, len: usize) -> *mut Self {
+		let self_: Self = if !str.is_null() {
 
-impl NBString {
-	/// Initialize an NBString (copies to the contents of data)
-	/// (uneccessary to call from Rust - NBString implements [From]<[Vec<u8>]> and [From]<[\[u8\]]>)
-	#[export_name = "NBString_init"]
-	pub extern fn init(&mut self, data: *mut c_uchar, len: usize) {
-		let mut raw: Vec<u8> = Vec::with_capacity(len);
-		for i in 0..len {
-			raw.push(unsafe { *data.add(i) });
-		}
+			// Copy string from str -> self_
+			let mut chars: Vec<u8> = Vec::with_capacity(len + 1);
+			for i in 0..len {
+				chars.push(unsafe { *str.add(i) } as u8);
+			}
+			chars.push(0);
 
-		let mut buf = raw.into_boxed_slice();
-		self.data = buf.as_mut_ptr();
-		self.buf = Some(buf);
-		self.len = len;
+			// Validate as utf8
+			match String::from_utf8(chars) {
+				Ok(s) => Self(s),
+				Err(err) => {
+					if cfg!(debug) {
+						eprintln!("Error creating NCString: {}", err);
+					}
+					return std::ptr::null_mut();
+				}
+			}
+		} else {
+
+			// Fill with repeating 'NC' as a zero value
+			let mut chars: Vec<u8> = Vec::with_capacity(len + 1);
+			for i in 0..len {
+				chars.push(if i % 2 == 0 { b'N' } else { b'C' });
+			}
+			chars.push(0);
+
+			Self(unsafe { String::from_utf8_unchecked(chars) })
+		};
+
+		// Box the NCString and remove RAII.
+		// The caller is responsible for using NCString_free() to deallocate
+		Box::into_raw(Box::new(self_))
 	}
 
-	/// Deinitialize an NBString (unneccessary to call from Rust - RAII accomplishes deinitialization)
-	#[export_name = "NBString_deinit"]
-	pub extern fn deinit(&mut self) {
-		if let Some(buf) = &mut self.buf {
-			self.data = std::ptr::null_mut();
-			self.len = 0;
-			mem::drop(mem::take(buf));
-			self.buf = None;
-		}
+	#[export_name = "NCString_free"]
+	extern fn free(v: *mut Self) {
+		// Reconstruct the Box<NCString>, which is then dropped
+		let _self = unsafe { Box::from_raw(v) };
+	}
+
+	#[export_name = "NCString_get"]
+	extern fn get(v: *mut Self) -> *mut c_char {
+		let mut self_ = unsafe { Box::from_raw(v) };
+		let str = self_.0.as_mut_ptr() as *mut c_char;
+
+		// Return ownership of v to the caller
+		Box::leak(self_);
+
+		// Return the str ptr
+		str
+	}
+
+	#[export_name = "NCstring_get_len"]
+	extern fn get_len(v: *const Self) -> usize {
+		// We need to cast to *mut for from_raw to work, but the only mutation we're doing is
+		// re-leaking the Box. Therefore, despite looking wild, the following cast is sound
+		let self_ = unsafe { Box::from_raw(v as *mut Self) };
+		let len = self_.0.len();
+
+		// Return ownership to caller
+		Box::leak(self_);
+
+		// Return the str len (excluding NUL terminator)
+		len - 1
 	}
 }

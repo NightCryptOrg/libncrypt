@@ -50,7 +50,7 @@ usize_is_size_t = true
 
 
 [export]
-#include = ["NCString", "NBString"]
+#include = ["NCString", "EncryptionHeader"]
 exclude = []
 #prefix = "EdSRP_"
 item_types = []
@@ -148,4 +148,4 @@ extra_bindings = []
 crates = []
 all_features = false
 default_features = true
-features = []
+features = ["cbindgen"]

@@ -12,46 +12,24 @@
 #include <stdlib.h>
 
 
-/**
- * NBString - An owned binary string with associated length
- */
-typedef struct NBString NBString;
+typedef struct String String;
 
 /**
- * NCString - An owned NUL-terminated text string with associated length.
- *
- * SAFETY: An NCString used via FFI must be initialized with `NCString_init()` before use,
- * and deinitialized with `NCString_deinit()` after use
+ * NCString - An owned NUL-terminated text string with FFI interop.
  */
-typedef struct NCString NCString;
+typedef struct String NCString;
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-/**
- * Deinitialize an NBString (unneccessary to call from Rust - RAII accomplishes deinitialization)
- */
-void NBString_deinit(struct NBString *self);
+void NCString_free(NCString *v);
 
-/**
- * Initialize an NBString (copies to the contents of data)
- * (uneccessary to call from Rust - NBString implements [From]<[Vec<u8>]> and [From]<[\[u8\]]>)
- */
-void NBString_init(struct NBString *self, unsigned char *data, size_t len);
+char *NCString_get(NCString *v);
 
-/**
- * Deinitialize an NCString (unecessary to call from Rust - RAII accomplishes deinitialization)
- */
-void NCString_deinit(struct NCString *self);
+NCString *NCString_malloc(const char *str, size_t len);
 
-/**
- * Initialize an NCString (copies the contents of str)
- * (uneccessary to call from Rust - NCString implements [From]<[String]>)
- *
- * Returns 0 on success or 1 if *str contains inner NUL characters
- */
-int NCString_init(struct NCString *self, char *str, size_t len);
+size_t NCstring_get_len(const NCString *v);
 
 #ifdef __cplusplus
 } // extern "C"

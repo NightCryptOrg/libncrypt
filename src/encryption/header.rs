@@ -1,11 +1,11 @@
-use crate::string::{NCString as String, NBString as BString};
+use crate::string::NCString;
 
 #[repr(C)]
 pub struct EncryptionHeader {
 	pub data_header: DataHeader,
 	pub key_header: KeyHeader,
 	/// Data-encryption key, encrypted using user-KEK
-	key: BString
+	key: NCString
 }
 
 /// Metadata for encrypted data fields
@@ -16,7 +16,7 @@ pub struct DataHeader {
 	/// This field enables opaque nullability
 	pub empty: bool,
 	/// Data encryption algorithm ID
-	pub algorithm: String
+	pub algorithm: NCString
 }
 
 /// Metadata for KEK-encrypted data-encryption keys
@@ -24,5 +24,5 @@ pub struct DataHeader {
 #[repr(C)]
 pub struct KeyHeader {
 	/// Key encryption algorithm ID
-	pub algorithm: String
+	pub algorithm: NCString
 }
