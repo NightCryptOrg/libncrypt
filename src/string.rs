@@ -92,7 +92,7 @@ impl NString<c_char> for NCString {
 		str
 	}
 
-	#[export_name = "NCstring_get_len"]
+	#[export_name = "NCString_get_len"]
 	extern fn get_len(v: *const Self) -> usize {
 		// We need to cast to *mut for from_raw to work, but the only mutation we're doing is
 		// re-leaking the Box. Therefore, despite looking wild, the following cast is sound

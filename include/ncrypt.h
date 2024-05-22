@@ -76,7 +76,7 @@ void NCString_free(NCString *v);
 
 char *NCString_get(NCString *v);
 
-size_t NCstring_get_len(const NCString *v);
+size_t NCString_get_len(const NCString *v);
 
 NBString *NBString_malloc(const uint8_t *data, size_t len);
 
