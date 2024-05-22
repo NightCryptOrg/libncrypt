@@ -8,14 +8,15 @@ use serde::{Serialize, Deserialize};
 /// and deinitialized with `NCString_deinit()` after use
 #[repr(C)]
 #[derive(Serialize, Deserialize)]
-pub struct String {
+pub struct NCString {
 	#[serde(skip, default = "std::ptr::null_mut")]
 	pub str: *mut c_char,
 	pub len: usize,
-	inner: Option<Box<[u8]>> // CString is used internally to validate
+	#[serde(with = "serde_bytes")]
+	inner: Option<Box<[u8]>> // [std::ffi::CString] is used internally for validation
 }
 
-impl String {
+impl NCString {
 	/// Deinitialize an NCString (unecessary to call from Rust where we have RAII)
 	#[export_name = "NCString_deinit"]
 	pub extern fn deinit(&mut self) {
@@ -48,7 +49,7 @@ impl String {
 	}
 }
 
-impl From<string::String> for String {
+impl From<string::String> for NCString {
 	fn from(value: string::String) -> Self {
 		let len = value.len();
 		let mut inner = value.into_bytes().into_boxed_slice();
@@ -63,7 +64,7 @@ impl From<string::String> for String {
 /// NBString - An owned binary string with associated length
 #[repr(C)]
 #[derive(Serialize, Deserialize)]
-pub struct BString {
+pub struct NBString {
 	#[serde(skip, default = "std::ptr::null_mut")]
 	pub data: *mut u8,
 	pub len: usize,
