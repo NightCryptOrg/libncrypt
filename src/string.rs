@@ -1,4 +1,4 @@
-use std::{ffi::{c_char, c_int, CString}, mem};
+use std::{ffi::{c_char, c_uchar, c_int, CString}, mem};
 use std::string;
 use serde::{Serialize, Deserialize};
 
@@ -13,22 +13,14 @@ pub struct NCString {
 	pub str: *mut c_char,
 	pub len: usize,
 	#[serde(with = "serde_bytes")]
-	inner: Option<Box<[u8]>> // [std::ffi::CString] is used internally for validation
+	buf: Option<Box<[u8]>> // [std::ffi::CString] is used internally for validation
 }
 
 impl NCString {
-	/// Deinitialize an NCString (unecessary to call from Rust where we have RAII)
-	#[export_name = "NCString_deinit"]
-	pub extern fn deinit(&mut self) {
-		if let Some(inner) = &mut self.inner {
-			self.str = std::ptr::null_mut();
-			self.len = 0;
-			mem::drop(mem::take(inner));
-		}
-	}
-
 	/// Initialize an NCString (copies the contents of str)
-	/// (uneccessary to call from Rust, as NCString implements [From]<[String]>)
+	/// (uneccessary to call from Rust - NCString implements [From]<[String]>)
+	///
+	/// Returns 0 on success or 1 if *str contains inner NUL characters
 	#[export_name = "NCString_init"]
 	pub extern fn init(&mut self, str: *mut c_char, len: usize) -> c_int {
 		let mut raw: Vec<u8> = Vec::with_capacity(len);
@@ -38,13 +30,23 @@ impl NCString {
 
 		match CString::new(raw) { // Validate that string doesn't contain internal NUL chars
 			Ok(cstr) => {
-				let mut inner = cstr.into_bytes_with_nul().into_boxed_slice();
-				self.str = inner.as_mut_ptr() as *mut c_char;
-				self.inner = Some(inner);
+				let mut buf = cstr.into_bytes_with_nul().into_boxed_slice();
+				self.str = buf.as_mut_ptr() as *mut c_char;
+				self.buf = Some(buf);
 				self.len = len;
 				0
 			}
 			Err(_) => 1
+		}
+	}
+
+	/// Deinitialize an NCString (unecessary to call from Rust - RAII accomplishes deinitialization)
+	#[export_name = "NCString_deinit"]
+	pub extern fn deinit(&mut self) {
+		if let Some(buf) = &mut self.buf {
+			self.str = std::ptr::null_mut();
+			self.len = 0;
+			mem::drop(mem::take(buf));
 		}
 	}
 }
@@ -52,10 +54,10 @@ impl NCString {
 impl From<string::String> for NCString {
 	fn from(value: string::String) -> Self {
 		let len = value.len();
-		let mut inner = value.into_bytes().into_boxed_slice();
+		let mut buf = value.into_bytes().into_boxed_slice();
 			Self {
-				str: inner.as_mut_ptr() as *mut c_char,
-				inner: Some(inner),
+				str: buf.as_mut_ptr() as *mut c_char,
+				buf: Some(buf),
 				len
 		}
 	}
@@ -69,5 +71,33 @@ pub struct NBString {
 	pub data: *mut u8,
 	pub len: usize,
 	#[serde(with = "serde_bytes")]
-	inner: Option<Box<[u8]>>
+	buf: Option<Box<[u8]>>
+}
+
+
+impl NBString {
+	/// Initialize an NBString (copies to the contents of data)
+	/// (uneccessary to call from Rust - NBString implements [From]<[Vec<u8>]> and [From]<[\[u8\]]>)
+	#[export_name = "NBString_init"]
+	pub extern fn init(&mut self, data: *mut c_uchar, len: usize) {
+		let mut raw: Vec<u8> = Vec::with_capacity(len);
+		for i in 0..len {
+			raw.push(unsafe { *data.add(i) });
+		}
+
+		let mut buf = raw.into_boxed_slice();
+		self.data = buf.as_mut_ptr();
+		self.buf = Some(buf);
+		self.len = len;
+	}
+
+	/// Deinitialize an NBString (unneccessary to call from Rust - RAII accomplishes deinitialization)
+	#[export_name = "NBString_deinit"]
+	pub extern fn deinit(&mut self) {
+		if let Some(inner) = &mut self.buf {
+			self.data = std::ptr::null_mut();
+			self.len = 0;
+			mem::drop(mem::take(inner));
+		}
+	}
 }
