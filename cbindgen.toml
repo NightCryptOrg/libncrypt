@@ -6,9 +6,9 @@ language = "C"
 
 # header = "/* Text to put at the beginning of the generated file. Probably a license. */"
 # trailer = "/* Text to put at the end of the generated file */"
-include_guard = "NCRYPT_H"
-# pragma_once = true
-autogen_warning = "/* WARNING: This header was generated with the assumption that sizeof(size_t) == sizeof(uintptr_t). Use of this library on systems where sizeof(size_t) != sizeof(uintptr_t) is undefined behavior. */"
+#include_guard = "NCRYPT_H"
+pragma_once = true
+#autogen_warning = "/* WARNING: This header was generated with the assumption that sizeof(size_t) == sizeof(uintptr_t). Use of this library on systems where sizeof(size_t) != sizeof(uintptr_t) is undefined behavior. */"
 include_version = true
 # namespace = "my_namespace"
 namespaces = []
@@ -44,13 +44,11 @@ usize_is_size_t = true
 
 
 [defines]
-# "target_os = freebsd" = "DEFINE_FREEBSD"
-# "feature = serde" = "DEFINE_SERDE"
 
 
 
 [export]
-#include = ["NCString", "EncryptionHeader"]
+include = ["EncryptionHeader"]
 exclude = []
 #prefix = "EdSRP_"
 item_types = []
@@ -148,4 +146,4 @@ extra_bindings = []
 crates = []
 all_features = false
 default_features = true
-features = ["cbindgen"]
+features = []
