@@ -1,5 +1,6 @@
 use crate::string::{NCString, NBString};
 use crate::versionable::Versionable;
+use std::collections::HashSet;
 
 // Defined header versions
 // Version field MUST match between EncryptionHeader and its child structs
@@ -24,6 +25,8 @@ pub struct DataHeader {
 	/// Whether the data is empty/null.
 	/// This field enables opaque nullability
 	pub empty: bool,
+	/// A set of fields in the data that are empty/null
+	pub empty_fields: HashSet<Box<NCString>>,
 	/// Data encryption algorithm ID
 	pub algorithm: Box<NCString>
 }
